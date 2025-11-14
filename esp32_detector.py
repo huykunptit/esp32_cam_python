@@ -6,7 +6,7 @@ import io
 import time
 
 class ESP32CamDetector:
-    def __init__(self, esp32_ip="192.168.0.109"):
+    def __init__(self, esp32_ip="10.13.20.248"):
         """
         Khởi tạo detector cho ESP32-CAM
         
@@ -210,5 +210,5 @@ if __name__ == "__main__":
             exit(1)
     
     # Khởi tạo và chạy detector
-    detector = ESP32CamDetector("192.168.0.109")
+    detector = ESP32CamDetector("10.13.20.248")
     detector.run_detection()

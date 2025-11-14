@@ -10,7 +10,7 @@ import urllib.request
 import os
 
 class ESP32CamObjectDetector:
-    def __init__(self, esp32_ip="192.168.0.109"):
+    def __init__(self, esp32_ip="10.13.20.248"):
         """
         Detector đồ vật cho ESP32-CAM sử dụng MobileNet SSD
         
@@ -379,5 +379,5 @@ class ESP32CamObjectDetector:
                 print(f"     {obj_name}: {count}")
 
 if __name__ == "__main__":
-    detector = ESP32CamObjectDetector("192.168.0.109")
+    detector = ESP32CamObjectDetector("10.13.20.248")
     detector.run_detection()

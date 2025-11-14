@@ -7,9 +7,9 @@ import time
 from collections import defaultdict, deque
 
 class ESP32CamSmartObjectDetector:
-    def __init__(self, esp32_ip="192.168.0.109"):
+    def __init__(self, esp32_ip="10.13.20.248"):
         """
-        Detector đồ vật thông minh với logic lọc tốt hơn
+        Detector đồ vật thông minh sử dụng MobileNet SSD
         
         Args:
             esp32_ip (str): IP address của ESP32-CAM
@@ -17,38 +17,35 @@ class ESP32CamSmartObjectDetector:
         self.esp32_ip = esp32_ip
         self.stream_url = f"http://{esp32_ip}/capture"
         
-        # Khởi tạo các cascade với tham số tối ưu
-        self.cascades = {}
-        self.cascade_info = {
-            'car': ('haarcascade_car.xml', (0, 255, 0), {'minNeighbors': 4, 'minSize': (50, 50)}),
-            'eye': ('haarcascade_eye.xml', (255, 0, 0), {'minNeighbors': 5, 'minSize': (15, 15)}),
-            'watch': ('haarcascade_watch.xml', (255, 0, 255), {'minNeighbors': 6, 'minSize': (25, 25)}),
-            'clock': ('haarcascade_clock.xml', (255, 255, 0), {'minNeighbors': 5, 'minSize': (30, 30)})
-        }
+        # Load MobileNet SSD model
+        print("Loading MobileNet SSD model...")
+        self.net = cv2.dnn.readNetFromCaffe(
+            "MobileNetSSD_deploy.prototxt",
+            "MobileNetSSD_deploy.caffemodel"
+        )
         
-        # Loại bỏ smile cascade vì nó quá nhạy
-        # self.cascade_info['smile'] = ('haarcascade_smile.xml', (0, 255, 255), {'minNeighbors': 10, 'minSize': (40, 40)})
+        # Danh sách các classes mà model có thể nhận diện
+        self.classes = ["background", "aeroplane", "bicycle", "bird", "boat",
+                       "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
+                       "dog", "horse", "motorbike", "person", "pottedplant", "sheep",
+                       "sofa", "train", "tvmonitor"]
         
-        # Tải các cascade có sẵn
-        for obj_name, (cascade_file, color, params) in self.cascade_info.items():
-            cascade_path = cv2.data.haarcascades + cascade_file
-            cascade = cv2.CascadeClassifier(cascade_path)
-            if not cascade.empty():
-                self.cascades[obj_name] = (cascade, color, params)
-                print(f"✓ Đã tải cascade cho {obj_name}")
-            else:
-                print(f"⚠️ Không tìm thấy cascade cho {obj_name}")
+        # Màu cho mỗi class (random colors)
+        np.random.seed(42)
+        self.colors = np.random.uniform(0, 255, size=(len(self.classes), 3))
+        
+        # Confidence threshold cho detection
+        self.confidence_threshold = 0.5
         
         # Buffer để smoothing và lọc false positive
         self.detection_history = defaultdict(lambda: deque(maxlen=5))
-        self.confidence_threshold = 0.6  # Threshold cho confidence
         
         # Thống kê
         self.detection_stats = defaultdict(int)
         self.total_frames = 0
         
         print(f"Kết nối ESP32-CAM tại: {self.stream_url}")
-        print(f"Đã tải {len(self.cascades)} cascade(s) (đã loại bỏ smile cascade)")
+        print(f"Đã tải MobileNet SSD model với {len(self.classes)} classes")
         
     def get_frame_from_esp32(self):
         """Lấy frame từ ESP32-CAM"""
@@ -74,118 +71,66 @@ class ESP32CamSmartObjectDetector:
             print(f"[ESP32] Error getting frame: {e}")
             return None
     
-    def calculate_detection_confidence(self, obj_name, detections):
+    def update_detection_history(self, detections_info):
         """
-        Tính confidence cho detections dựa trên lịch sử
+        Cập nhật lịch sử detections cho smoothing
         
         Args:
-            obj_name: Tên object
-            detections: List of detections
-            
-        Returns:
-            List of (detection, confidence)
+            detections_info: List of detection information
         """
-        if not detections:
-            return []
+        # Reset counts
+        current_counts = defaultdict(int)
         
-        # Tính confidence dựa trên kích thước và vị trí
-        confidences = []
-        for detection in detections:
-            x, y, w, h = detection
+        # Count detections by class
+        for detection in detections_info:
+            current_counts[detection['class']] += 1
             
-            # Confidence dựa trên kích thước (objects quá nhỏ hoặc quá lớn có confidence thấp)
-            size_score = 1.0
-            if obj_name == 'car':
-                if w < 60 or h < 40 or w > 300 or h > 200:
-                    size_score = 0.3
-            elif obj_name == 'eye':
-                if w < 10 or h < 10 or w > 50 or h > 50:
-                    size_score = 0.3
-            elif obj_name in ['watch', 'clock']:
-                if w < 20 or h < 20 or w > 100 or h > 100:
-                    size_score = 0.3
-            
-            # Confidence dựa trên vị trí (objects ở góc có thể là false positive)
-            position_score = 1.0
-            frame_height, frame_width = 480, 640  # Giả định kích thước frame
-            if x < 10 or y < 10 or x + w > frame_width - 10 or y + h > frame_height - 10:
-                position_score = 0.7
-            
-            # Confidence tổng hợp
-            confidence = size_score * position_score
-            confidences.append((detection, confidence))
-        
-        return confidences
-    
-    def filter_detections(self, obj_name, detections):
-        """
-        Lọc detections dựa trên confidence và lịch sử
-        
-        Args:
-            obj_name: Tên object
-            detections: List of detections
-            
-        Returns:
-            List of filtered detections
-        """
-        if not detections:
-            return []
-        
-        # Tính confidence
-        detections_with_conf = self.calculate_detection_confidence(obj_name, detections)
-        
-        # Lọc theo confidence threshold
-        filtered = []
-        for detection, confidence in detections_with_conf:
-            if confidence >= self.confidence_threshold:
-                filtered.append(detection)
-        
-        # Cập nhật lịch sử
-        self.detection_history[obj_name].append(len(filtered))
-        
-        # Smoothing: chỉ hiển thị nếu có ít nhất 2 detections trong 5 frames gần nhất
-        if len(self.detection_history[obj_name]) >= 3:
-            recent_detections = list(self.detection_history[obj_name])[-3:]
-            avg_detections = sum(recent_detections) / len(recent_detections)
-            
-            # Chỉ hiển thị nếu trung bình >= 1.5 detections
-            if avg_detections < 1.5:
-                return []
-        
-        return filtered
+        # Update history for each class
+        for class_name in self.classes:
+            self.detection_history[class_name].append(current_counts[class_name])
     
     def detect_objects(self, frame):
-        """Nhận diện đồ vật với logic lọc thông minh"""
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        """Nhận diện đồ vật sử dụng MobileNet SSD"""
+        (h, w) = frame.shape[:2]
+        # Tạo blob từ image
+        blob = cv2.dnn.blobFromImage(frame, 0.007843, (300, 300), 127.5)
+        
+        # Đưa blob qua network
+        self.net.setInput(blob)
+        detections = self.net.forward()
+        
         detections_info = []
         object_counts = defaultdict(int)
         
-        # Nhận diện từng loại đồ vật
-        for obj_name, (cascade, color, params) in self.cascades.items():
-            objects = cascade.detectMultiScale(
-                gray,
-                scaleFactor=1.1,
-                minNeighbors=params['minNeighbors'],
-                minSize=params['minSize'],
-                flags=cv2.CASCADE_SCALE_IMAGE
-            )
+        # Lọc và vẽ các detections
+        for i in range(detections.shape[2]):
+            confidence = detections[0, 0, i, 2]
             
-            # Lọc detections
-            filtered_objects = self.filter_detections(obj_name, objects)
-            
-            # Vẽ bounding box cho mỗi object
-            for i, (x, y, w, h) in enumerate(filtered_objects):
-                cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-                cv2.putText(frame, f'{obj_name.title()} {i+1}', 
-                           (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            if confidence > self.confidence_threshold:
+                # Lấy index của class
+                class_id = int(detections[0, 0, i, 1])
+                class_name = self.classes[class_id]
+                
+                # Tính toán coordinates của bounding box
+                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                (startX, startY, endX, endY) = box.astype("int")
+                
+                # Vẽ bounding box và label
+                color = self.colors[class_id].astype('int').tolist()
+                cv2.rectangle(frame, (startX, startY), (endX, endY), color, 2)
+                
+                label = f"{class_name}: {confidence * 100:.1f}%"
+                y = startY - 15 if startY - 15 > 15 else startY + 15
+                cv2.putText(frame, label, (startX, y),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                 
                 detections_info.append({
-                    'class': obj_name,
-                    'bbox': (x, y, w, h),
-                    'confidence': 1.0
+                    'class': class_name,
+                    'bbox': (startX, startY, endX - startX, endY - startY),
+                    'confidence': confidence
                 })
                 
-                object_counts[obj_name] += 1
+                object_counts[class_name] += 1
         
         return frame, detections_info, dict(object_counts)
     
@@ -293,20 +238,20 @@ class ESP32CamSmartObjectDetector:
                 print("🔄 Đã reset thống kê")
             elif key == ord('c'):
                 # Thay đổi confidence threshold
-                self.confidence_threshold = 0.9 if self.confidence_threshold == 0.6 else 0.6
-                print(f"🔄 Confidence threshold: {self.confidence_threshold}")
+                self.confidence_threshold = min(0.9, self.confidence_threshold + 0.1) if self.confidence_threshold < 0.9 else 0.3
+                print(f"🔄 Confidence threshold: {self.confidence_threshold:.1f}")
             elif key == ord('i'):
-                self._print_cascade_info()
+                self._print_model_info()
         
         cv2.destroyAllWindows()
         self._print_final_stats()
     
-    def _print_cascade_info(self):
-        """In thông tin về các cascade"""
-        print("\n📋 Thông tin Cascade:")
-        for obj_name, (cascade, color, params) in self.cascades.items():
-            print(f"   - {obj_name.title()}: {self.cascade_info[obj_name][0]}")
-            print(f"     MinNeighbors: {params['minNeighbors']}, MinSize: {params['minSize']}")
+    def _print_model_info(self):
+        """In thông tin về model MobileNet SSD"""
+        print("\n📋 Thông tin Model:")
+        print("   - Model: MobileNet SSD")
+        print(f"   - Classes ({len(self.classes)}): {', '.join(self.classes[1:])}")  # Skip background
+        print(f"   - Confidence Threshold: {self.confidence_threshold:.2f}")
     
     def _print_final_stats(self):
         """In thống kê cuối"""
@@ -320,5 +265,5 @@ class ESP32CamSmartObjectDetector:
                 print(f"     {obj_name.title()}: {count}")
 
 if __name__ == "__main__":
-    detector = ESP32CamSmartObjectDetector("192.168.0.109")
+    detector = ESP32CamSmartObjectDetector("10.13.20.248")
     detector.run_detection()
