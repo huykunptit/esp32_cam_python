@@ -7,7 +7,7 @@ import time
 from collections import defaultdict, deque
 
 class ESP32CamCombinedDetector:
-    def __init__(self, esp32_ip="10.13.20.248"):
+    def __init__(self, esp32_ip="192.168.1.14"):
         """
         Detector kết hợp người và đồ vật cho ESP32-CAM
         
@@ -310,5 +310,5 @@ class ESP32CamCombinedDetector:
                 print(f"     {obj_name.title()}: {count}")
 
 if __name__ == "__main__":
-    detector = ESP32CamCombinedDetector("10.13.20.248")
+    detector = ESP32CamCombinedDetector("192.168.1.14")
     detector.run_detection()

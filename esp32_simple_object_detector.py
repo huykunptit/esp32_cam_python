@@ -7,7 +7,7 @@ import time
 from collections import defaultdict
 
 class ESP32CamSimpleObjectDetector:
-    def __init__(self, esp32_ip="10.13.20.248"):
+    def __init__(self, esp32_ip="192.168.1.14"):
         """
         Detector đồ vật đơn giản cho ESP32-CAM sử dụng Haar Cascade có sẵn
         
@@ -249,5 +249,5 @@ class ESP32CamSimpleObjectDetector:
                 print(f"     {obj_name.title()}: {count}")
 
 if __name__ == "__main__":
-    detector = ESP32CamSimpleObjectDetector("10.13.20.248")
+    detector = ESP32CamSimpleObjectDetector("192.168.1.14")
     detector.run_detection()

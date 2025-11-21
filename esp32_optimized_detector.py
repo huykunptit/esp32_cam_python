@@ -12,7 +12,7 @@ import numpy as np
 import urllib.request
 
 # Cấu hình ESP32-CAM
-ESP32_CAM_IP = "10.13.20.248"  # Thay đổi IP của bạn
+ESP32_CAM_IP = "192.168.1.14"  # Thay đổi IP của bạn
 # Các endpoint có thể thử
 ESP32_CAM_ENDPOINTS = ["/capture", "/cam-hi.jpg", "/cam-lo.jpg", "/stream", "/jpg"]
 

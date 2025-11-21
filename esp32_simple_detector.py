@@ -4,7 +4,7 @@ import time
 
 # ==== CẤU HÌNH ====
 # Đổi thành IP của bạn nếu khác
-ESP32_IP = "10.13.20.248"
+ESP32_IP = "192.168.1.14"
 # Thử các endpoint phổ biến; thứ tự ưu tiên: stream -> capture
 STREAM_URLS = [
     f"http://{ESP32_IP}/stream",

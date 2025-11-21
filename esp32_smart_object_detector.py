@@ -7,7 +7,7 @@ import time
 from collections import defaultdict, deque
 
 class ESP32CamSmartObjectDetector:
-    def __init__(self, esp32_ip="10.13.20.248"):
+    def __init__(self, esp32_ip="192.168.1.14"):
         """
         Detector đồ vật thông minh sử dụng MobileNet SSD
         
@@ -265,5 +265,5 @@ class ESP32CamSmartObjectDetector:
                 print(f"     {obj_name.title()}: {count}")
 
 if __name__ == "__main__":
-    detector = ESP32CamSmartObjectDetector("10.13.20.248")
+    detector = ESP32CamSmartObjectDetector("192.168.1.14")
     detector.run_detection()

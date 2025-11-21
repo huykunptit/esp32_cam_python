@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ Đồ Kết Nối Gậy Thông Minh</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border-left: 5px solid #3498db;
+        }
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .connection-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .connection-table th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .connection-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        .connection-table tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        .connection-table tr:hover {
+            background: #e3f2fd;
+        }
+        .pin-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .power { background: #e74c3c; }
+        .ground { background: #2c3e50; }
+        .data { background: #27ae60; }
+        .uart { background: #9b59b6; }
+        .sensor { background: #f39c12; }
+        .diagram {
+            background: white;
+            border: 2px solid #34495e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            font-family: monospace;
+            line-height: 1.6;
+        }
+        .notes {
+            grid-column: 1 / -1;
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+        }
+        .notes ul {
+            margin-left: 20px;
+        }
+        .notes li {
+            margin-bottom: 8px;
+        }
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 SƠ ĐỒ KẾT NỐI GẬY THÔNG MINH</h1>
+            <p>Hệ thống cảnh báo vật cản cho người khiếm thị</p>
+        </div>
+        
+        <div class="content">
+            <!-- Phần nguồn điện -->
+            <div class="section">
+                <h2>🔋 HỆ THỐNG NGUỒN</h2>
+                <table class="connection-table">
+                    <tr>
+                        <th>Thành phần</th>
+                        <th>Kết nối</th>
+                        <th>Điện áp</th>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color power"></span>2x Pin Li-ion</td>
+                        <td>Nối tiếp</td>
+                        <td>7.4V (3.7V x 2)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color power"></span>Mạch sạc</td>
+                        <td>BAT+ → Pin+, BAT- → Pin-</td>
+                        <td>Input: 5V, Output: 8.4V</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color power"></span>Boost converter</td>
+                        <td>IN+ → BAT+, IN- → BAT-</td>
+                        <td>3.3V → 5V</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color power"></span>ESP32 Thường</td>
+                        <td>VIN → 3.3V, GND → GND</td>
+                        <td>3.3V</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color power"></span>ESP32-CAM</td>
+                        <td>3.3V → ESP32 3.3V, GND → GND</td>
+                        <td>3.3V</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color sensor"></span>Cảm biến SR04M</td>
+                        <td>VCC → 5V (boost), GND → GND</td>
+                        <td>5V</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Sơ đồ nguồn -->
+            <div class="section">
+                <h2>📊 SƠ ĐỒ NGUỒN</h2>
+                <div class="diagram">
+[2x PIN LI-ION 3.7V] (NỐI TIẾP)
+        │
+        ↓ (+7.4V)
+┌───────────────┐
+│   MẠCH SẠC    │
+│  TP4056/XYS-  │
+└───────────────┘
+        │ (+8.4V)
+        ↓
+┌───────────────┐
+│ BOOST CONVERT │
+│  3.3V → 5V    │
+└───────────────┘
+        ├─5V──→ [CẢM BIẾN SR04M]×3
+        │
+        ↓ (+3.3V)
+┌───────────────┐
+│  ESP32 THƯỜNG │
+│   + ESP32-CAM │
+└───────────────┘
+                </div>
+            </div>
+
+            <!-- Kết nối UART -->
+            <div class="section">
+                <h2>📡 GIAO TIẾP UART</h2>
+                <table class="connection-table">
+                    <tr>
+                        <th>ESP32 Thường</th>
+                        <th>ESP32-CAM</th>
+                        <th>Chức năng</th>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color uart"></span>GPIO17 (TX2)</td>
+                        <td><span class="pin-color uart"></span>GPIO3 (RX)</td>
+                        <td>Gửi dữ liệu → CAM</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color uart"></span>GPIO16 (RX2)</td>
+                        <td><span class="pin-color uart"></span>GPIO1 (TX)</td>
+                        <td>Nhận dữ liệu ← CAM</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color ground"></span>GND</td>
+                        <td><span class="pin-color ground"></span>GND</td>
+                        <td>Chung mass</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color power"></span>3.3V</td>
+                        <td><span class="pin-color power"></span>3.3V</td>
+                        <td>Cấp nguồn cho CAM</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Cảm biến siêu âm -->
+            <div class="section">
+                <h2>🎯 CẢM BIẾN SIÊU ÂM</h2>
+                <table class="connection-table">
+                    <tr>
+                        <th>Cảm biến</th>
+                        <th>ESP32 GPIO</th>
+                        <th>Vị trí</th>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color sensor"></span>SR04M TRƯỚC</td>
+                        <td>TRIG:13, ECHO:12</td>
+                        <td>Hướng thẳng</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color sensor"></span>SR04M TRÁI</td>
+                        <td>TRIG:14, ECHO:27</td>
+                        <td>Hướng 45° trái</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color sensor"></span>SR04M PHẢI</td>
+                        <td>TRIG:26, ECHO:25</td>
+                        <td>Hướng 45° phải</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color power"></span>Nguồn cảm biến</td>
+                        <td>VCC → 5V, GND → GND</td>
+                        <td>Từ mạch boost</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Motor rung -->
+            <div class="section">
+                <h2>📳 MOTOR RUNG</h2>
+                <table class="connection-table">
+                    <tr>
+                        <th>Thành phần</th>
+                        <th>Kết nối</th>
+                        <th>Chú thích</th>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color data"></span>Motor rung</td>
+                        <td>Chân 1 → 5V, Chân 2 → Collector</td>
+                        <td>Motor 2 chân</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color data"></span>Transistor NPN</td>
+                        <td>Base → GPIO23, Emitter → GND</td>
+                        <td>BC547/2N2222</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color data"></span>Điện trở</td>
+                        <td>1kΩ giữa GPIO23 và Base</td>
+                        <td>Bảo vệ ESP32</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pin-color data"></span>Diode</td>
+                        <td>Song song motor (ngược)</td>
+                        <td>1N4007 - chống điện ngược</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Ghi chú quan trọng -->
+            <div class="section notes">
+                <h2>⚠️ LƯU Ý QUAN TRỌNG</h2>
+                <ul>
+                    <li><strong>Nạp code ESP32-CAM:</strong> Tháo dây UART, GPIO0 nối GND, nhấn RESET</li>
+                    <li><strong>Chạy hệ thống:</strong> GPIO0 để trống hoặc nối 3.3V</li>
+                    <li><strong>Nguồn cảm biến:</strong> Phải dùng 5V từ mạch boost, không dùng 3.3V</li>
+                    <li><strong>Mạch sạc:</strong> Đảm bảo pin nối đúng cực (+/-)</li>
+                    <li><strong>Boost converter:</strong> Chỉnh biến trở để ra đúng 5V</li>
+                    <li><strong>Kiểm tra nguồn:</strong> Dùng đồng hồ VOM kiểm tra điện áp trước khi cấp</li>
+                </ul>
+            </div>
+
+            <!-- Sơ đồ tổng thể -->
+            <div class="section" style="grid-column: 1 / -1;">
+                <h2>🔗 SƠ ĐỒ TỔNG THỂ</h2>
+                <div class="diagram" style="text-align: center; font-size: 14px; line-height: 2;">
+          [2 PIN LI-ION]═══[MẠCH SẠC]═══[BOOST 3.3V→5V]╮
+                 │              │              │       │
+                 │              │              │       │
+            [ESP32 THƯỜNG]←3.3V─┘              │       │
+                 │                             │       │
+          UART(TX2/RX2)                        │       │
+                 │                             │       │
+            [ESP32-CAM]                        │       │
+                                                5V     3.3V
+                                                 │       │
+                    ┌───────────┐    ┌───────────┼───────┼───────────┐
+                    │           │    │           │       │           │
+                [SR04M TRƯỚC] [SR04M TRÁI] [SR04M PHẢI] [MOTOR RUNG]
+                    │           │    │           │               │
+                 GPIO13,12   GPIO14,27       GPIO26,25        GPIO23
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

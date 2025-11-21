@@ -165,7 +165,7 @@ python esp32_detector.py
 Thay đổi IP của ESP32-CAM trong file:
 
 ```python
-detector = ESP32CamDetector("10.13.20.248")  # Thay IP của bạn
+detector = ESP32CamDetector("192.168.1.14")  # Thay IP của bạn
 ```
 
 ## Xử lý lỗi
